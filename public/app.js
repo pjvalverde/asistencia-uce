@@ -201,13 +201,14 @@ $("#logoutButton").addEventListener("click", async () => {
 
 $("#courseForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
   const selectedDays = form.getAll("days");
   form.delete("days");
   selectedDays.forEach((day) => form.append("days", day));
   try {
     await request("/api/admin/courses", { method: "POST", body: form });
-    event.currentTarget.reset();
+    formElement.reset();
     await loadCourses();
     alert("Materia creada e importada correctamente.");
   } catch (error) {
@@ -217,14 +218,15 @@ $("#courseForm").addEventListener("submit", async (event) => {
 
 $("#passwordForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
   try {
     await request("/api/admin/change-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(Object.fromEntries(form))
     });
-    event.currentTarget.reset();
+    formElement.reset();
     alert("Clave actualizada correctamente.");
   } catch (error) {
     alert(error.message);
