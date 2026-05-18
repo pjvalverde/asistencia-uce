@@ -397,6 +397,27 @@ app.post("/api/admin/change-password", requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+app.post("/api/admin/recover-password", async (req, res) => {
+  const recoveryToken = process.env.ADMIN_RECOVERY_TOKEN || SESSION_SECRET;
+  const { token, newPassword } = req.body;
+  if (!token || token !== recoveryToken) {
+    return res.status(403).json({ error: "Token de recuperacion incorrecto." });
+  }
+  if (!newPassword || String(newPassword).length < 8) {
+    return res.status(400).json({ error: "La nueva clave debe tener al menos 8 caracteres." });
+  }
+  const db = await readDb();
+  db.settings.adminPasswordHash = hashPassword(newPassword);
+  db.settings.updatedAt = new Date().toISOString();
+  db.audit.push({
+    id: id("audit"),
+    type: "admin_password_recovered",
+    at: new Date().toISOString()
+  });
+  await writeDb(db);
+  res.json({ ok: true });
+});
+
 app.get("/api/admin/courses", requireAdmin, async (req, res) => {
   const db = await readDb();
   const courses = db.courses.map((course) => {
