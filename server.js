@@ -27,7 +27,9 @@ if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
   supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
 
-fs.mkdirSync(DATA_DIR, { recursive: true });
+if (!supabase) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const upload = multer({
