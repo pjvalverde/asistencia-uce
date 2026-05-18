@@ -98,25 +98,41 @@
                     </label>
                   </div>
                   <fieldset>
-                    <legend>Dias de asistencia</legend>
-                    <div class="days">
-                      <label><input type="checkbox" name="days" value="LUN" />L</label>
-                      <label><input type="checkbox" name="days" value="MAR" />M</label>
-                      <label><input type="checkbox" name="days" value="MIE" />Mi</label>
-                      <label><input type="checkbox" name="days" value="JUE" />J</label>
-                      <label><input type="checkbox" name="days" value="VIE" />V</label>
-                      <label><input type="checkbox" name="days" value="SAB" />S</label>
-                      <label><input type="checkbox" name="days" value="DOM" />D</label>
+                    <legend>Horarios de asistencia</legend>
+                    <div class="schedule-editor">
+                      <label>
+                        Dia
+                        <select id="scheduleDay">
+                          <option value="LUN">Lunes</option>
+                          <option value="MAR">Martes</option>
+                          <option value="MIE">Miercoles</option>
+                          <option value="JUE">Jueves</option>
+                          <option value="VIE">Viernes</option>
+                          <option value="SAB">Sabado</option>
+                          <option value="DOM">Domingo</option>
+                        </select>
+                      </label>
+                      <label>
+                        Abre
+                        <input id="scheduleStart" type="time" value="14:10" />
+                      </label>
+                      <label>
+                        Cierra
+                        <input id="scheduleEnd" type="time" value="14:20" />
+                      </label>
+                      <button id="addScheduleButton" type="button">Agregar</button>
                     </div>
+                    <input id="schedulesInput" name="schedules" type="hidden" />
+                    <div id="scheduleList" class="schedule-list"></div>
                   </fieldset>
-                  <div class="form-grid">
+                  <div class="form-grid hidden">
                     <label>
                       Abre
-                      <input name="startTime" type="time" value="14:10" required />
+                      <input name="startTime" type="time" value="14:10" />
                     </label>
                     <label>
                       Cierra
-                      <input name="endTime" type="time" value="14:20" required />
+                      <input name="endTime" type="time" value="14:20" />
                     </label>
                   </div>
                   <label>

@@ -4,6 +4,11 @@ const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 let currentStudentCourse = null;
 let currentCourseCode = "";
 let adminUnlocked = false;
+let scheduleRows = [
+  { day: "MAR", startTime: "16:00", endTime: "18:00" },
+  { day: "JUE", startTime: "14:00", endTime: "16:00" },
+  { day: "VIE", startTime: "14:00", endTime: "16:00" }
+];
 
 function localDateValue(date = new Date()) {
   const year = date.getFullYear();
@@ -38,11 +43,34 @@ function dayText(days) {
   return days.map((day) => names[day] || day).join(", ");
 }
 
+function scheduleText(schedules) {
+  const names = { LUN: "lunes", MAR: "martes", MIE: "miercoles", JUE: "jueves", VIE: "viernes", SAB: "sabado", DOM: "domingo" };
+  if (!schedules.length) return "Sin horarios";
+  return schedules.map((schedule) => `${names[schedule.day] || schedule.day} ${schedule.startTime}-${schedule.endTime}`).join(" · ");
+}
+
+function renderScheduleRows() {
+  const list = $("#scheduleList");
+  if (!list) return;
+  $("#schedulesInput").value = JSON.stringify(scheduleRows);
+  list.innerHTML = "";
+  scheduleRows.forEach((schedule, index) => {
+    const row = document.createElement("div");
+    row.className = "schedule-row";
+    row.innerHTML = `<strong>${scheduleText([schedule])}</strong><button type="button">Quitar</button>`;
+    row.querySelector("button").addEventListener("click", () => {
+      scheduleRows.splice(index, 1);
+      renderScheduleRows();
+    });
+    list.appendChild(row);
+  });
+}
+
 function renderStudentCourse(course) {
   currentStudentCourse = course;
   $("#studentCourse").classList.remove("hidden");
   $("#studentCourseTitle").textContent = `${course.name}${course.section ? ` · ${course.section}` : ""}`;
-  $("#studentCourseMeta").textContent = `${dayText(course.days)} · ${course.startTime} a ${course.endTime}`;
+  $("#studentCourseMeta").textContent = scheduleText(course.schedules || []);
   const badge = $("#windowBadge");
   badge.textContent = course.window.isOpen ? "Abierta ahora" : "Cerrada";
   badge.classList.toggle("open", course.window.isOpen);
@@ -50,7 +78,7 @@ function renderStudentCourse(course) {
     course.window.isOpen
       ? "La ventana esta abierta. Busque su nombre y pulse Dar check una sola vez."
       : course.window.scheduledToday
-        ? `Hoy existe clase, pero la asistencia abre de ${course.startTime} a ${course.endTime}.`
+        ? `Hoy existe clase, pero la asistencia abre de ${course.window.startTime} a ${course.window.endTime}.`
         : "Hoy no esta programada la toma de asistencia para esta materia.",
     course.window.isOpen ? "ok" : "neutral"
   );
@@ -114,7 +142,7 @@ async function loadCourses() {
     item.innerHTML = `
       <div>
         <strong>${course.name}${course.section ? ` · ${course.section}` : ""}</strong>
-        <span>${course.studentsCount} estudiantes · ${dayText(course.days)} · ${course.startTime}-${course.endTime}</span>
+        <span>${course.studentsCount} estudiantes · ${scheduleText(course.schedules || [])}</span>
         <span>Codigo para estudiantes: <b>${course.code}</b></span>
       </div>
       <form class="report-form">
@@ -157,6 +185,22 @@ $$(".toggle-password").forEach((button) => {
     button.textContent = show ? "✕" : "👁";
     button.setAttribute("aria-label", show ? "Ocultar clave" : "Mostrar clave");
   });
+});
+
+$("#addScheduleButton").addEventListener("click", () => {
+  const day = $("#scheduleDay").value;
+  const startTime = $("#scheduleStart").value;
+  const endTime = $("#scheduleEnd").value;
+  if (!day || !startTime || !endTime) {
+    alert("Complete dia, hora inicial y hora final.");
+    return;
+  }
+  if (startTime >= endTime) {
+    alert("La hora inicial debe ser menor que la hora final.");
+    return;
+  }
+  scheduleRows.push({ day, startTime, endTime });
+  renderScheduleRows();
 });
 
 $("#courseCodeForm").addEventListener("submit", async (event) => {
@@ -217,12 +261,16 @@ $("#courseForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const formElement = event.currentTarget;
   const form = new FormData(formElement);
-  const selectedDays = form.getAll("days");
-  form.delete("days");
-  selectedDays.forEach((day) => form.append("days", day));
+  if (!scheduleRows.length) {
+    alert("Agregue al menos un horario de asistencia.");
+    return;
+  }
+  $("#schedulesInput").value = JSON.stringify(scheduleRows);
+  form.set("schedules", JSON.stringify(scheduleRows));
   try {
     await request("/api/admin/courses", { method: "POST", body: form });
     formElement.reset();
+    renderScheduleRows();
     await loadCourses();
     alert("Materia creada e importada correctamente.");
   } catch (error) {
@@ -248,6 +296,7 @@ $("#passwordForm").addEventListener("submit", async (event) => {
 });
 
 async function bootFromPath() {
+  renderScheduleRows();
   if (/^\/(admin|docente)\/?$/.test(location.pathname)) {
     setView("adminView");
   }

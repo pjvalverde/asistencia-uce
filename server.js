@@ -150,6 +150,50 @@ function nowMinute(date = new Date()) {
   return date.getHours() * 60 + date.getMinutes();
 }
 
+function normalizeSchedules(course) {
+  if (Array.isArray(course.schedules) && course.schedules.length) {
+    return course.schedules;
+  }
+  return (course.days || []).map((day) => ({
+    day,
+    startTime: course.startTime,
+    endTime: course.endTime
+  }));
+}
+
+function parseSchedules(body) {
+  let schedules = [];
+  if (body.schedules) {
+    schedules = JSON.parse(body.schedules);
+  } else {
+    const selectedDays = Array.isArray(body.days) ? body.days : String(body.days || "").split(",").filter(Boolean);
+    schedules = selectedDays.map((day) => ({
+      day,
+      startTime: body.startTime,
+      endTime: body.endTime
+    }));
+  }
+
+  const validDays = new Set(["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"]);
+  const cleaned = schedules.map((schedule) => ({
+    day: String(schedule.day || "").toUpperCase(),
+    startTime: String(schedule.startTime || ""),
+    endTime: String(schedule.endTime || "")
+  }));
+  if (!cleaned.length) {
+    throw new Error("Agregue al menos un horario de asistencia.");
+  }
+  cleaned.forEach((schedule) => {
+    if (!validDays.has(schedule.day) || !schedule.startTime || !schedule.endTime) {
+      throw new Error("Cada horario debe tener dia, hora inicial y hora final.");
+    }
+    if (minuteOfDay(schedule.startTime) >= minuteOfDay(schedule.endTime)) {
+      throw new Error("En cada horario, la hora inicial debe ser menor que la hora final.");
+    }
+  });
+  return cleaned;
+}
+
 function formatDateLabel(isoDate) {
   const [year, month, day] = isoDate.split("-");
   return `${day}/${month}/${year}`;
@@ -280,18 +324,23 @@ function getDeviceId(req, res) {
 function activeWindow(course, date = new Date()) {
   const day = weekdayKey(date);
   const dateIso = todayISO(date);
-  const scheduledToday = course.days.includes(day);
-  const start = minuteOfDay(course.startTime);
-  const end = minuteOfDay(course.endTime);
+  const todaysSchedules = normalizeSchedules(course).filter((schedule) => schedule.day === day);
   const minute = nowMinute(date);
-  const isOpen = scheduledToday && minute >= start && minute <= end;
+  const activeSchedule = todaysSchedules.find((schedule) => {
+    const start = minuteOfDay(schedule.startTime);
+    const end = minuteOfDay(schedule.endTime);
+    return minute >= start && minute <= end;
+  });
+  const nextSchedule = todaysSchedules.find((schedule) => minute < minuteOfDay(schedule.startTime)) || todaysSchedules[0];
   return {
     dateIso,
     weekday: day,
-    scheduledToday,
-    isOpen,
-    startsInMinutes: start - minute,
-    closesInMinutes: end - minute
+    scheduledToday: todaysSchedules.length > 0,
+    isOpen: Boolean(activeSchedule),
+    startTime: (activeSchedule || nextSchedule)?.startTime || null,
+    endTime: (activeSchedule || nextSchedule)?.endTime || null,
+    startsInMinutes: nextSchedule ? minuteOfDay(nextSchedule.startTime) - minute : null,
+    closesInMinutes: activeSchedule ? minuteOfDay(activeSchedule.endTime) - minute : null
   };
 }
 
@@ -306,19 +355,22 @@ function dateRange(from, to) {
 }
 
 function scheduledDates(course, from, to) {
-  return dateRange(from, to).filter((iso) => course.days.includes(weekdayKey(new Date(`${iso}T12:00:00`))));
+  const scheduledDays = new Set(normalizeSchedules(course).map((schedule) => schedule.day));
+  return dateRange(from, to).filter((iso) => scheduledDays.has(weekdayKey(new Date(`${iso}T12:00:00`))));
 }
 
 function publicCourse(course) {
   const window = activeWindow(course);
+  const schedules = normalizeSchedules(course);
   return {
     id: course.id,
     code: course.code,
     name: course.name,
     section: course.section,
-    days: course.days,
-    startTime: course.startTime,
-    endTime: course.endTime,
+    schedules,
+    days: [...new Set(schedules.map((schedule) => schedule.day))],
+    startTime: schedules[0]?.startTime || "",
+    endTime: schedules[0]?.endTime || "",
     createdAt: course.createdAt,
     studentLink: `/estudiante/${course.code}`,
     window
@@ -429,18 +481,12 @@ app.get("/api/admin/courses", requireAdmin, async (req, res) => {
 
 app.post("/api/admin/courses", requireAdmin, upload.single("studentsFile"), async (req, res) => {
   try {
-    const { name, section, days, startTime, endTime } = req.body;
-    if (!name || !startTime || !endTime || !days || !req.file) {
-      return res.status(400).json({ error: "Complete materia, dias, horario y archivo Excel." });
+    const { name, section } = req.body;
+    if (!name || !req.file) {
+      return res.status(400).json({ error: "Complete materia y archivo Excel." });
     }
 
-    const selectedDays = Array.isArray(days) ? days : String(days).split(",");
-    if (!selectedDays.length) {
-      return res.status(400).json({ error: "Seleccione al menos un dia de asistencia." });
-    }
-    if (minuteOfDay(startTime) >= minuteOfDay(endTime)) {
-      return res.status(400).json({ error: "La hora inicial debe ser menor que la hora final." });
-    }
+    const schedules = parseSchedules(req.body);
 
     const imported = parseStudentsFromExcel(req.file.path);
     if (!imported.length) {
@@ -453,9 +499,10 @@ app.post("/api/admin/courses", requireAdmin, upload.single("studentsFile"), asyn
       code: `${slugify(name)}-${crypto.randomBytes(2).toString("hex").toUpperCase()}`,
       name: String(name).trim(),
       section: String(section || "").trim(),
-      days: selectedDays,
-      startTime,
-      endTime,
+      schedules,
+      days: [...new Set(schedules.map((schedule) => schedule.day))],
+      startTime: schedules[0].startTime,
+      endTime: schedules[0].endTime,
       createdAt: new Date().toISOString(),
       originalFileName: req.file.originalname
     };
@@ -496,22 +543,16 @@ app.post("/api/admin/courses", requireAdmin, upload.single("studentsFile"), asyn
 
 app.patch("/api/admin/courses/:courseId/schedule", requireAdmin, async (req, res) => {
   const { courseId } = req.params;
-  const { days, startTime, endTime } = req.body;
-  const selectedDays = Array.isArray(days) ? days : String(days || "").split(",").filter(Boolean);
-  if (!selectedDays.length || !startTime || !endTime) {
-    return res.status(400).json({ error: "Seleccione dias y horario." });
-  }
-  if (minuteOfDay(startTime) >= minuteOfDay(endTime)) {
-    return res.status(400).json({ error: "La hora inicial debe ser menor que la hora final." });
-  }
+  const schedules = parseSchedules(req.body);
   const db = await readDb();
   const course = db.courses.find((item) => item.id === courseId);
   if (!course) {
     return res.status(404).json({ error: "Materia no encontrada." });
   }
-  course.days = selectedDays;
-  course.startTime = startTime;
-  course.endTime = endTime;
+  course.schedules = schedules;
+  course.days = [...new Set(schedules.map((schedule) => schedule.day))];
+  course.startTime = schedules[0].startTime;
+  course.endTime = schedules[0].endTime;
   course.updatedAt = new Date().toISOString();
   await writeDb(db);
   res.json({ course: publicCourse(course) });
@@ -630,7 +671,7 @@ app.post("/api/student/course/:code/check", async (req, res) => {
   const window = activeWindow(course);
   if (!window.isOpen) {
     const message = window.scheduledToday
-      ? `La asistencia esta cerrada. La ventana es de ${course.startTime} a ${course.endTime}.`
+      ? `La asistencia esta cerrada. La ventana de hoy es de ${window.startTime} a ${window.endTime}.`
       : "Hoy no esta programada la toma de asistencia para esta materia.";
     return res.status(403).json({ error: message, window });
   }
