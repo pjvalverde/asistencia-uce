@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Registro de asistencia</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">UCE · Control academico</p>
+          <h1>Registro de asistencia</h1>
+        </div>
+        <nav class="mode-tabs" aria-label="Modo de uso">
+          <button class="tab is-active" data-view="studentView">Estudiante</button>
+          <button class="tab" data-view="adminView">Docente</button>
+        </nav>
+      </header>
+
+      <main>
+        <section id="studentView" class="view is-active">
+          <div class="student-layout">
+            <section class="panel">
+              <h2>Ingreso del estudiante</h2>
+              <p id="directLinkNote" class="muted hidden">Busque su nombre en la lista y confirme su asistencia.</p>
+              <form id="courseCodeForm" class="inline-form">
+                <label>
+                  Codigo de materia
+                  <input id="courseCodeInput" name="courseCode" placeholder="Ej. ANALISIS-1-A1B2" autocomplete="off" />
+                </label>
+                <button type="submit">Abrir</button>
+              </form>
+              <div id="studentCourse" class="hidden">
+                <div class="course-state">
+                  <div>
+                    <p class="eyebrow">Materia activa</p>
+                    <h3 id="studentCourseTitle"></h3>
+                    <p id="studentCourseMeta"></p>
+                  </div>
+                  <strong id="windowBadge"></strong>
+                </div>
+                <label>
+                  Mi nombre
+                  <input id="studentSearchInput" placeholder="Escriba su nombre o apellido" autocomplete="off" />
+                </label>
+                <div id="studentResults" class="results"></div>
+              </div>
+            </section>
+            <aside class="panel status-panel">
+              <h2>Estado de asistencia</h2>
+              <div id="studentMessage" class="message neutral">
+                Ingrese el codigo que le compartio el docente.
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="adminView" class="view">
+          <section id="loginPanel" class="panel narrow">
+            <h2>Acceso docente</h2>
+            <form id="loginForm">
+              <label>
+                Usuario
+                <input name="username" value="admin" autocomplete="username" />
+              </label>
+              <label>
+                Clave
+                <input name="password" type="password" autocomplete="current-password" />
+              </label>
+              <button type="submit">Entrar</button>
+            </form>
+            <p class="muted">Clave inicial: admin123. Luego cambiela desde Seguridad.</p>
+          </section>
+
+          <section id="dashboardPanel" class="hidden">
+            <div class="admin-grid">
+              <section class="panel">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">Configuracion</p>
+                    <h2>Crear materia</h2>
+                  </div>
+                  <button id="logoutButton" class="ghost" type="button">Salir</button>
+                </div>
+                <form id="courseForm" enctype="multipart/form-data">
+                  <div class="form-grid">
+                    <label>
+                      Materia
+                      <input name="name" placeholder="Analisis 1" required />
+                    </label>
+                    <label>
+                      Paralelo / seccion
+                      <input name="section" placeholder="SI1-006" />
+                    </label>
+                  </div>
+                  <fieldset>
+                    <legend>Dias de asistencia</legend>
+                    <div class="days">
+                      <label><input type="checkbox" name="days" value="LUN" />L</label>
+                      <label><input type="checkbox" name="days" value="MAR" />M</label>
+                      <label><input type="checkbox" name="days" value="MIE" />Mi</label>
+                      <label><input type="checkbox" name="days" value="JUE" />J</label>
+                      <label><input type="checkbox" name="days" value="VIE" />V</label>
+                      <label><input type="checkbox" name="days" value="SAB" />S</label>
+                      <label><input type="checkbox" name="days" value="DOM" />D</label>
+                    </div>
+                  </fieldset>
+                  <div class="form-grid">
+                    <label>
+                      Abre
+                      <input name="startTime" type="time" value="14:10" required />
+                    </label>
+                    <label>
+                      Cierra
+                      <input name="endTime" type="time" value="14:20" required />
+                    </label>
+                  </div>
+                  <label>
+                    Lista Excel de estudiantes
+                    <input name="studentsFile" type="file" accept=".xls,.xlsx,.csv" required />
+                  </label>
+                  <button type="submit">Crear materia e importar lista</button>
+                </form>
+              </section>
+
+              <section class="panel">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">Reportes</p>
+                    <h2>Materias creadas</h2>
+                  </div>
+                </div>
+                <div id="courseList" class="course-list"></div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">Seguridad</p>
+                    <h2>Cambiar clave</h2>
+                  </div>
+                </div>
+                <form id="passwordForm">
+                  <label>
+                    Clave actual
+                    <input name="currentPassword" type="password" autocomplete="current-password" required />
+                  </label>
+                  <label>
+                    Nueva clave
+                    <input name="newPassword" type="password" autocomplete="new-password" minlength="8" required />
+                  </label>
+                  <button type="submit">Guardar nueva clave</button>
+                </form>
+              </section>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <template id="studentCardTemplate">
+      <article class="student-card">
+        <div>
+          <strong></strong>
+          <span></span>
+        </div>
+        <button type="button">Dar check</button>
+      </article>
+    </template>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

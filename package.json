@@ -1,0 +1,17 @@
+{
+  "name": "registrador-asistencia-deberes-notas",
+  "version": "1.0.0",
+  "description": "Aplicacion local para registrar asistencia por materia con carga y descarga de Excel.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "multer": "^2.1.1",
+    "xlsx": "^0.18.5"
+  }
+}
