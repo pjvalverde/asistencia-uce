@@ -24,7 +24,8 @@ const SESSION_SECRET = process.env.SESSION_SECRET || "cambiar-este-secreto-en-pr
 let supabase = null;
 if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
   const { createClient } = require("@supabase/supabase-js");
-  supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const normalizedSupabaseUrl = SUPABASE_URL.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+  supabase = createClient(normalizedSupabaseUrl, SUPABASE_SERVICE_ROLE_KEY);
 }
 
 if (!supabase) {
