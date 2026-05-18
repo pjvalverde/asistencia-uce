@@ -3,6 +3,7 @@ const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
 let currentStudentCourse = null;
 let currentCourseCode = "";
+let adminUnlocked = false;
 
 function localDateValue(date = new Date()) {
   const year = date.getFullYear();
@@ -91,9 +92,10 @@ function renderStudentResults(students) {
 
 async function loadAdminState() {
   const me = await request("/api/admin/me");
-  $("#loginPanel").classList.toggle("hidden", me.admin);
-  $("#dashboardPanel").classList.toggle("hidden", !me.admin);
-  if (me.admin) {
+  const showDashboard = me.admin && adminUnlocked;
+  $("#loginPanel").classList.toggle("hidden", showDashboard);
+  $("#dashboardPanel").classList.toggle("hidden", !showDashboard);
+  if (showDashboard) {
     await loadCourses();
   }
 }
@@ -198,6 +200,7 @@ $("#loginForm").addEventListener("submit", async (event) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(Object.fromEntries(form))
     });
+    adminUnlocked = true;
     await loadAdminState();
   } catch (error) {
     alert(error.message);
@@ -205,6 +208,7 @@ $("#loginForm").addEventListener("submit", async (event) => {
 });
 
 $("#logoutButton").addEventListener("click", async () => {
+  adminUnlocked = false;
   await request("/api/admin/logout", { method: "POST" });
   await loadAdminState();
 });
@@ -244,6 +248,9 @@ $("#passwordForm").addEventListener("submit", async (event) => {
 });
 
 async function bootFromPath() {
+  if (/^\/(admin|docente)\/?$/.test(location.pathname)) {
+    setView("adminView");
+  }
   const match = location.pathname.match(/^\/estudiante\/([^/]+)/);
   if (match) {
     setView("studentView");
