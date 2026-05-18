@@ -328,6 +328,26 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/api/setup-check", async (_req, res) => {
+  const status = {
+    ok: false,
+    supabaseUrl: Boolean(SUPABASE_URL),
+    supabaseServiceKey: Boolean(SUPABASE_SERVICE_ROLE_KEY),
+    storage: supabase ? "supabase" : "local-json"
+  };
+  try {
+    await readDb();
+    res.json({ ...status, ok: true });
+  } catch (error) {
+    res.status(500).json({
+      ...status,
+      error: error.message,
+      code: error.code || null,
+      hint: error.hint || null
+    });
+  }
+});
+
 app.post("/api/admin/login", async (req, res) => {
   const { username, password } = req.body;
   const db = await readDb();
