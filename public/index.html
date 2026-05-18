@@ -67,7 +67,10 @@
               </label>
               <label>
                 Clave
-                <input name="password" type="password" autocomplete="current-password" />
+                <span class="password-field">
+                  <input name="password" type="password" autocomplete="current-password" />
+                  <button class="toggle-password" type="button" aria-label="Mostrar clave">👁</button>
+                </span>
               </label>
               <button type="submit">Entrar</button>
             </form>
@@ -145,11 +148,17 @@
                 <form id="passwordForm">
                   <label>
                     Clave actual
-                    <input name="currentPassword" type="password" autocomplete="current-password" required />
+                    <span class="password-field">
+                      <input name="currentPassword" type="password" autocomplete="current-password" required />
+                      <button class="toggle-password" type="button" aria-label="Mostrar clave">👁</button>
+                    </span>
                   </label>
                   <label>
                     Nueva clave
-                    <input name="newPassword" type="password" autocomplete="new-password" minlength="8" required />
+                    <span class="password-field">
+                      <input name="newPassword" type="password" autocomplete="new-password" minlength="8" required />
+                      <button class="toggle-password" type="button" aria-label="Mostrar clave">👁</button>
+                    </span>
                   </label>
                   <button type="submit">Guardar nueva clave</button>
                 </form>

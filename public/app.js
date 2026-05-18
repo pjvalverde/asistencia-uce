@@ -147,6 +147,16 @@ async function loadCourses() {
 
 $$(".tab").forEach((tab) => tab.addEventListener("click", () => setView(tab.dataset.view)));
 
+$$(".toggle-password").forEach((button) => {
+  button.addEventListener("click", () => {
+    const input = button.parentElement.querySelector("input");
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    button.textContent = show ? "✕" : "👁";
+    button.setAttribute("aria-label", show ? "Ocultar clave" : "Mostrar clave");
+  });
+});
+
 $("#courseCodeForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const code = $("#courseCodeInput").value.trim().toUpperCase();

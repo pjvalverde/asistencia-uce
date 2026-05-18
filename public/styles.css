@@ -201,6 +201,35 @@ input:focus {
   border-color: var(--brand);
 }
 
+.password-field {
+  position: relative;
+  display: block;
+}
+
+.password-field input {
+  padding-right: 50px;
+}
+
+.toggle-password {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 34px;
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0;
+  color: var(--ink);
+  background: #f8fafc;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.toggle-password:hover {
+  color: #fff;
+  background: var(--brand);
+}
+
 .form-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
