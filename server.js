@@ -684,9 +684,7 @@ app.post("/api/student/course/:code/check", async (req, res) => {
   }
 
   const deviceId = getDeviceId(req, res);
-  const ip = getClientIp(req);
   const deviceHash = hash(deviceId);
-  const ipHash = hash(ip);
 
   const sameStudent = db.attendance.find(
     (record) => record.courseId === course.id && record.studentId === student.id && record.date === window.dateIso
@@ -702,13 +700,6 @@ app.post("/api/student/course/:code/check", async (req, res) => {
     return res.status(409).json({ error: "Este celular o navegador ya fue usado para registrar asistencia hoy." });
   }
 
-  const sameIp = db.attendance.find(
-    (record) => record.courseId === course.id && record.date === window.dateIso && record.ipHash === ipHash
-  );
-  if (sameIp) {
-    return res.status(409).json({ error: "Esta direccion IP ya fue usada para registrar asistencia hoy." });
-  }
-
   const record = {
     id: id("att"),
     courseId: course.id,
@@ -716,7 +707,7 @@ app.post("/api/student/course/:code/check", async (req, res) => {
     date: window.dateIso,
     checkedAt: new Date().toISOString(),
     deviceHash,
-    ipHash,
+    ipHash: hash(getClientIp(req)),
     userAgentHash: hash(req.headers["user-agent"] || "")
   };
   db.attendance.push(record);
