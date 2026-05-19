@@ -126,6 +126,10 @@ h3 {
   background: var(--ink);
 }
 
+.student-link-mode .mode-tabs {
+  display: none;
+}
+
 .view,
 .hidden {
   display: none;
@@ -363,6 +367,58 @@ legend {
   border-radius: 8px;
   padding: 14px;
   background: #fff;
+}
+
+.student-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 12px 0 16px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.student-tab {
+  flex: 1;
+  min-height: 36px;
+  color: var(--muted);
+  background: transparent;
+}
+
+.student-tab.is-active {
+  color: #fff;
+  background: var(--ink);
+}
+
+.student-panel {
+  display: none;
+}
+
+.student-panel.is-active {
+  display: grid;
+  gap: 14px;
+}
+
+.history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.history-item {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 10px;
+  background: #f8fafc;
+}
+
+.history-item strong {
+  display: block;
+}
+
+.history-item span {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .student-card span,

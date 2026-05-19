@@ -41,11 +41,25 @@
                   </div>
                   <strong id="windowBadge"></strong>
                 </div>
+                <div class="student-tabs">
+                  <button class="student-tab is-active" type="button" data-student-panel="checkPanel">Check</button>
+                  <button class="student-tab" type="button" data-student-panel="historyPanel">Historial</button>
+                </div>
+                <div id="checkPanel" class="student-panel is-active">
                 <label>
                   Mi nombre
                   <input id="studentSearchInput" placeholder="Escriba su nombre o apellido" autocomplete="off" />
                 </label>
                 <div id="studentResults" class="results"></div>
+                </div>
+                <div id="historyPanel" class="student-panel">
+                  <label>
+                    Mi nombre
+                    <input id="historySearchInput" placeholder="Escriba su nombre o apellido" autocomplete="off" />
+                  </label>
+                  <div id="historyResults" class="results"></div>
+                  <div id="historyList" class="history-list"></div>
+                </div>
               </div>
             </section>
             <aside class="panel status-panel">

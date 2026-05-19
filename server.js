@@ -20,6 +20,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_STATE_KEY = process.env.SUPABASE_STATE_KEY || "default";
 const SESSION_SECRET = process.env.SESSION_SECRET || "cambiar-este-secreto-en-produccion";
+const APP_TIME_ZONE = process.env.APP_TIME_ZONE || "America/Guayaquil";
 
 let supabase = null;
 if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
@@ -130,15 +131,28 @@ function hash(value) {
   return crypto.createHash("sha256").update(String(value || "")).digest("hex");
 }
 
+function localParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    weekday: "short",
+    hourCycle: "h23"
+  }).formatToParts(date);
+  return Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+}
+
 function todayISO(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const parts = localParts(date);
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 function weekdayKey(date = new Date()) {
-  return ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"][date.getDay()];
+  const weekday = localParts(date).weekday;
+  return { Sun: "DOM", Mon: "LUN", Tue: "MAR", Wed: "MIE", Thu: "JUE", Fri: "VIE", Sat: "SAB" }[weekday];
 }
 
 function minuteOfDay(time) {
@@ -147,7 +161,8 @@ function minuteOfDay(time) {
 }
 
 function nowMinute(date = new Date()) {
-  return date.getHours() * 60 + date.getMinutes();
+  const parts = localParts(date);
+  return Number(parts.hour) * 60 + Number(parts.minute);
 }
 
 function normalizeSchedules(course) {
@@ -345,18 +360,20 @@ function activeWindow(course, date = new Date()) {
 }
 
 function dateRange(from, to) {
-  const start = new Date(`${from}T00:00:00`);
-  const end = new Date(`${to}T00:00:00`);
+  const [fromYear, fromMonth, fromDay] = from.split("-").map(Number);
+  const [toYear, toMonth, toDay] = to.split("-").map(Number);
+  const start = new Date(Date.UTC(fromYear, fromMonth - 1, fromDay));
+  const end = new Date(Date.UTC(toYear, toMonth - 1, toDay));
   const dates = [];
-  for (let cursor = start; cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
-    dates.push(todayISO(cursor));
+  for (let cursor = start; cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    dates.push(cursor.toISOString().slice(0, 10));
   }
   return dates;
 }
 
 function scheduledDates(course, from, to) {
   const scheduledDays = new Set(normalizeSchedules(course).map((schedule) => schedule.day));
-  return dateRange(from, to).filter((iso) => scheduledDays.has(weekdayKey(new Date(`${iso}T12:00:00`))));
+  return dateRange(from, to).filter((iso) => scheduledDays.has(weekdayKey(new Date(`${iso}T12:00:00-05:00`))));
 }
 
 function publicCourse(course) {
@@ -378,7 +395,7 @@ function publicCourse(course) {
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, timeZone: APP_TIME_ZONE, today: todayISO(), weekday: weekdayKey(), minute: nowMinute() });
 });
 
 app.get("/api/setup-check", async (_req, res) => {
@@ -659,6 +676,32 @@ app.get("/api/student/course/:code/search", async (req, res) => {
       externalId: student.externalId
     }));
   res.json({ students });
+});
+
+app.get("/api/student/course/:code/history/:studentId", async (req, res) => {
+  const db = await readDb();
+  const course = db.courses.find((item) => item.code === req.params.code);
+  if (!course) {
+    return res.status(404).json({ error: "Materia no encontrada." });
+  }
+  const student = db.students.find(
+    (item) => item.id === req.params.studentId && item.courseId === course.id
+  );
+  if (!student) {
+    return res.status(404).json({ error: "Estudiante no encontrado en esta materia." });
+  }
+  const records = db.attendance
+    .filter((record) => record.courseId === course.id && record.studentId === student.id)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((record) => ({
+      date: record.date,
+      dateLabel: formatDateLabel(record.date),
+      checkedAt: record.checkedAt
+    }));
+  res.json({
+    student: { name: student.name, email: student.email },
+    records
+  });
 });
 
 app.post("/api/student/course/:code/check", async (req, res) => {

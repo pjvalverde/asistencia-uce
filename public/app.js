@@ -106,7 +106,7 @@ function renderStudentResults(students) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ studentId: student.id })
         });
-        showMessage(`Asistencia registrada para ${payload.student.name}. Hora: ${new Date(payload.record.checkedAt).toLocaleTimeString()}. Ya no necesita hacer nada mas.`, "ok");
+        showMessage(`✓ Chequeo de asistencia registrado para ${payload.student.name}. Ya no necesita hacer nada mas.`, "ok");
         $("#studentResults").innerHTML = "";
         $("#studentSearchInput").value = "";
       } catch (error) {
@@ -116,6 +116,48 @@ function renderStudentResults(students) {
     });
     container.appendChild(node);
   });
+}
+
+function renderHistorySearchResults(students) {
+  const container = $("#historyResults");
+  container.innerHTML = "";
+  $("#historyList").innerHTML = "";
+  if (!students.length) {
+    container.innerHTML = '<p class="muted">No hay resultados con ese texto.</p>';
+    return;
+  }
+  students.forEach((student) => {
+    const card = document.createElement("article");
+    card.className = "student-card";
+    card.innerHTML = `
+      <div>
+        <strong>${student.name}</strong>
+        <span>${[student.email, student.externalId].filter(Boolean).join(" · ")}</span>
+      </div>
+      <button type="button">Ver historial</button>
+    `;
+    card.querySelector("button").addEventListener("click", () => loadStudentHistory(student.id));
+    container.appendChild(card);
+  });
+}
+
+async function loadStudentHistory(studentId) {
+  try {
+    const payload = await request(`/api/student/course/${currentCourseCode}/history/${studentId}`);
+    $("#historyResults").innerHTML = "";
+    if (!payload.records.length) {
+      $("#historyList").innerHTML = `<p class="muted">${payload.student.name} no tiene asistencias registradas todavia.</p>`;
+      return;
+    }
+    $("#historyList").innerHTML = payload.records
+      .map((record) => {
+        const time = new Date(record.checkedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return `<div class="history-item"><strong>${record.dateLabel}</strong><span>Asistencia registrada · ${time}</span></div>`;
+      })
+      .join("");
+  } catch (error) {
+    $("#historyList").innerHTML = `<div class="message error">${error.message}</div>`;
+  }
 }
 
 async function loadAdminState() {
@@ -177,6 +219,13 @@ async function loadCourses() {
 
 $$(".tab").forEach((tab) => tab.addEventListener("click", () => setView(tab.dataset.view)));
 
+$$(".student-tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    $$(".student-tab").forEach((item) => item.classList.toggle("is-active", item === tab));
+    $$(".student-panel").forEach((panel) => panel.classList.toggle("is-active", panel.id === tab.dataset.studentPanel));
+  });
+});
+
 $$(".toggle-password").forEach((button) => {
   button.addEventListener("click", () => {
     const input = button.parentElement.querySelector("input");
@@ -231,6 +280,25 @@ $("#studentSearchInput").addEventListener("input", () => {
       renderStudentResults(students);
     } catch (error) {
       showMessage(error.message, "error");
+    }
+  }, 220);
+});
+
+let historySearchTimer = null;
+$("#historySearchInput").addEventListener("input", () => {
+  clearTimeout(historySearchTimer);
+  historySearchTimer = setTimeout(async () => {
+    const q = $("#historySearchInput").value.trim();
+    if (!currentCourseCode || q.length < 2) {
+      $("#historyResults").innerHTML = "";
+      $("#historyList").innerHTML = "";
+      return;
+    }
+    try {
+      const { students } = await request(`/api/student/course/${currentCourseCode}/search?q=${encodeURIComponent(q)}`);
+      renderHistorySearchResults(students);
+    } catch (error) {
+      $("#historyList").innerHTML = `<div class="message error">${error.message}</div>`;
     }
   }, 220);
 });
@@ -302,6 +370,7 @@ async function bootFromPath() {
   }
   const match = location.pathname.match(/^\/estudiante\/([^/]+)/);
   if (match) {
+    document.body.classList.add("student-link-mode");
     setView("studentView");
     $("#courseCodeForm").classList.add("hidden");
     $("#directLinkNote").classList.remove("hidden");
