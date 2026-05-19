@@ -322,6 +322,31 @@ legend {
   background: #f8fafc;
 }
 
+.student-clock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -6px 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.student-clock span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.student-clock strong {
+  font-size: 22px;
+  letter-spacing: 0;
+  color: var(--brand-strong);
+}
+
 #windowBadge {
   white-space: nowrap;
   border-radius: 99px;

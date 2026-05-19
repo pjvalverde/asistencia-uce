@@ -648,7 +648,7 @@ app.get("/api/student/course/:code", async (req, res) => {
   if (!course) {
     return res.status(404).json({ error: "Materia no encontrada." });
   }
-  res.json({ course: publicCourse(course) });
+  res.json({ course: publicCourse(course), serverTime: new Date().toISOString(), timeZone: APP_TIME_ZONE });
 });
 
 app.get("/api/student/course/:code/search", async (req, res) => {

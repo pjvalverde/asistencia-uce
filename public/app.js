@@ -4,6 +4,9 @@ const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 let currentStudentCourse = null;
 let currentCourseCode = "";
 let adminUnlocked = false;
+let guayaquilClockTimer = null;
+let courseRefreshTimer = null;
+let serverOffsetMs = 0;
 let scheduleRows = [
   { day: "MAR", startTime: "16:00", endTime: "18:00" },
   { day: "JUE", startTime: "14:00", endTime: "16:00" },
@@ -82,6 +85,36 @@ function renderStudentCourse(course) {
         : "Hoy no esta programada la toma de asistencia para esta materia.",
     course.window.isOpen ? "ok" : "neutral"
   );
+}
+
+function startGuayaquilClock(serverTime) {
+  if (serverTime) {
+    serverOffsetMs = new Date(serverTime).getTime() - Date.now();
+  }
+  clearInterval(guayaquilClockTimer);
+  const formatter = new Intl.DateTimeFormat("es-EC", {
+    timeZone: "America/Guayaquil",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
+  const tick = () => {
+    const now = new Date(Date.now() + serverOffsetMs);
+    $("#guayaquilClock").textContent = formatter.format(now);
+  };
+  tick();
+  guayaquilClockTimer = setInterval(tick, 1000);
+}
+
+async function refreshStudentCourse() {
+  if (!currentCourseCode) return;
+  try {
+    const { course, serverTime } = await request(`/api/student/course/${currentCourseCode}`);
+    renderStudentCourse(course);
+    startGuayaquilClock(serverTime);
+  } catch {
+  }
 }
 
 function renderStudentResults(students) {
@@ -259,8 +292,11 @@ $("#courseCodeForm").addEventListener("submit", async (event) => {
   currentCourseCode = code;
   history.replaceState(null, "", `/estudiante/${code}`);
   try {
-    const { course } = await request(`/api/student/course/${code}`);
-    renderStudentCourse(course);
+    const payload = await request(`/api/student/course/${code}`);
+    renderStudentCourse(payload.course);
+    startGuayaquilClock(payload.serverTime);
+    clearInterval(courseRefreshTimer);
+    courseRefreshTimer = setInterval(refreshStudentCourse, 30000);
   } catch (error) {
     showMessage(error.message, "error");
   }
