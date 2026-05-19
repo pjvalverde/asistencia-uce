@@ -285,9 +285,7 @@ $("#addScheduleButton").addEventListener("click", () => {
   renderScheduleRows();
 });
 
-$("#courseCodeForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const code = $("#courseCodeInput").value.trim().toUpperCase();
+async function openStudentCourse(code) {
   if (!code) return;
   currentCourseCode = code;
   history.replaceState(null, "", `/estudiante/${code}`);
@@ -300,6 +298,12 @@ $("#courseCodeForm").addEventListener("submit", async (event) => {
   } catch (error) {
     showMessage(error.message, "error");
   }
+}
+
+$("#courseCodeForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const code = $("#courseCodeInput").value.trim().toUpperCase();
+  await openStudentCourse(code);
 });
 
 let searchTimer = null;
@@ -411,7 +415,7 @@ async function bootFromPath() {
     $("#courseCodeForm").classList.add("hidden");
     $("#directLinkNote").classList.remove("hidden");
     $("#courseCodeInput").value = decodeURIComponent(match[1]).toUpperCase();
-    $("#courseCodeForm").dispatchEvent(new Event("submit"));
+    await openStudentCourse($("#courseCodeInput").value);
   }
   await loadAdminState();
 }
