@@ -300,11 +300,14 @@ async function openStudentCourse(code) {
   }
 }
 
-$("#courseCodeForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const code = $("#courseCodeInput").value.trim().toUpperCase();
-  await openStudentCourse(code);
-});
+const courseCodeForm = $("#courseCodeForm");
+if (courseCodeForm) {
+  courseCodeForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const code = $("#courseCodeInput").value.trim().toUpperCase();
+    await openStudentCourse(code);
+  });
+}
 
 let searchTimer = null;
 $("#studentSearchInput").addEventListener("input", () => {
@@ -412,10 +415,8 @@ async function bootFromPath() {
   if (match) {
     document.body.classList.add("student-link-mode");
     setView("studentView");
-    $("#courseCodeForm").classList.add("hidden");
     $("#directLinkNote").classList.remove("hidden");
-    $("#courseCodeInput").value = decodeURIComponent(match[1]).toUpperCase();
-    await openStudentCourse($("#courseCodeInput").value);
+    await openStudentCourse(decodeURIComponent(match[1]).toUpperCase());
   }
   await loadAdminState();
 }
